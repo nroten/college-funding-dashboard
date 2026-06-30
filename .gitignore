@@ -10,3 +10,9 @@ Thumbs.db
 .env.*
 secrets.*
 config.local.*
+tracker.csv
+gen_csv.js
+node_modules/
+*.docx
+*.pdf
+build_playbook.js
