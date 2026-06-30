@@ -1,0 +1,12 @@
+# OS / editor cruft
+.DS_Store
+*.swp
+Thumbs.db
+
+# Never commit secrets — the API key lives only in the browser's localStorage,
+# but guard against accidental local config files
+*.key
+.env
+.env.*
+secrets.*
+config.local.*

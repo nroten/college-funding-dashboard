@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>College Funding Command Center</title>
+<style>
+  :root{
+    --bg:#0d1117; --bg2:#161b22; --bg3:#1c2330; --line:#2a3340;
+    --txt:#e6edf3; --muted:#8b97a7; --accent:#58a6ff; --accent2:#7ee787;
+    --warn:#f0a868; --danger:#ff7b72; --gold:#e3b341; --purple:#bc8cff;
+    --chip:#21262d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);color:var(--txt);line-height:1.5}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  header{padding:22px 26px;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#11161f,#0d1117)}
+  header h1{margin:0;font-size:22px;letter-spacing:.3px}
+  header .sub{color:var(--muted);font-size:13px;margin-top:4px}
+  .wrap{display:flex;gap:0;min-height:calc(100vh - 86px)}
+  .main{flex:1;padding:22px 26px;overflow:auto}
+  /* summary */
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+  .stat{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .stat .n{font-size:24px;font-weight:700}
+  .stat .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-top:2px}
+  .bar{height:8px;background:var(--chip);border-radius:6px;overflow:hidden;margin-top:10px}
+  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent))}
+  /* controls */
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+  .controls input[type=search],.controls select{
+    background:var(--bg2);border:1px solid var(--line);color:var(--txt);
+    padding:8px 11px;border-radius:9px;font-size:13px}
+  .controls input[type=search]{min-width:220px}
+  .pill{background:var(--chip);border:1px solid var(--line);color:var(--muted);
+    padding:6px 11px;border-radius:20px;font-size:12px;cursor:pointer}
+  .pill.active{color:var(--txt);border-color:var(--accent);background:#1b2a44}
+  /* cards */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+  .card{background:var(--bg2);border:1px solid var(--line);border-radius:13px;padding:15px 16px;
+    display:flex;flex-direction:column;gap:9px;position:relative;transition:border-color .15s}
+  .card:hover{border-color:#3d4a5c}
+  .card.done{opacity:.62}
+  .card.skip{opacity:.45}
+  .card h3{margin:0;font-size:15px;line-height:1.3;padding-right:18px}
+  .card .sponsor{color:var(--muted);font-size:12px;margin-top:-4px}
+  .row{display:flex;flex-wrap:wrap;gap:7px;align-items:center}
+  .tag{font-size:11px;padding:3px 8px;border-radius:6px;background:var(--chip);color:var(--muted);border:1px solid var(--line)}
+  .tag.amt{color:var(--accent2);border-color:#26402c}
+  .tag.field{color:var(--purple);border-color:#352a4d}
+  .deadline{font-size:12px;font-weight:600}
+  .d-urgent{color:var(--danger)} .d-soon{color:var(--warn)} .d-ok{color:var(--muted)}
+  .prio{position:absolute;top:13px;right:13px;width:9px;height:9px;border-radius:50%}
+  .p-urgent{background:var(--danger);box-shadow:0 0 0 4px rgba(255,123,114,.15)}
+  .p-high{background:var(--gold)} .p-med{background:var(--muted)}
+  .elig{font-size:12.5px;color:#c2ccd8}
+  .notes{font-size:12px;color:var(--muted);border-left:2px solid var(--line);padding-left:9px}
+  .cardfoot{display:flex;justify-content:space-between;align-items:center;margin-top:4px;gap:8px}
+  .status-sel{background:var(--bg3);border:1px solid var(--line);color:var(--txt);border-radius:8px;font-size:12px;padding:5px 8px}
+  .applybtn{font-size:12px;padding:5px 11px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);background:transparent}
+  .applybtn:hover{background:#16263f}
+  .flag{font-size:11px;color:var(--warn);background:#2a2113;border:1px solid #3d2f15;padding:4px 8px;border-radius:6px}
+  /* chat */
+  .chat{width:380px;border-left:1px solid var(--line);background:var(--bg2);display:flex;flex-direction:column}
+  .chat .chead{padding:13px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  .chat .chead b{font-size:14px}
+  .gear{cursor:pointer;color:var(--muted);font-size:18px;background:none;border:none}
+  .clog{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:11px}
+  .msg{padding:9px 12px;border-radius:11px;font-size:13.5px;max-width:92%;white-space:pre-wrap;word-wrap:break-word}
+  .msg.u{align-self:flex-end;background:#1b2a44;border:1px solid #26416b}
+  .msg.a{align-self:flex-start;background:var(--bg3);border:1px solid var(--line)}
+  .msg.sys{align-self:center;color:var(--muted);font-size:12px;background:none;border:1px dashed var(--line)}
+  .cinput{border-top:1px solid var(--line);padding:11px;display:flex;gap:8px}
+  .cinput textarea{flex:1;resize:none;background:var(--bg3);border:1px solid var(--line);color:var(--txt);
+    border-radius:9px;padding:9px;font-size:13.5px;font-family:inherit;height:44px}
+  .cinput button{background:var(--accent);border:none;color:#06101f;font-weight:700;border-radius:9px;padding:0 16px;cursor:pointer}
+  .cinput button:disabled{opacity:.5;cursor:default}
+  .settings{display:none;padding:14px;border-bottom:1px solid var(--line);background:var(--bg3);font-size:12.5px}
+  .settings.open{display:block}
+  .settings label{display:block;margin:9px 0 3px;color:var(--muted)}
+  .settings input,.settings select,.settings textarea{width:100%;background:var(--bg);border:1px solid var(--line);
+    color:var(--txt);border-radius:7px;padding:7px;font-size:12.5px;font-family:inherit}
+  .settings textarea{height:70px;resize:vertical}
+  .settings .hint{color:var(--muted);font-size:11px;margin-top:6px}
+  .savedmsg{color:var(--accent2);font-size:11px;margin-top:6px;min-height:14px}
+  @media(max-width:900px){.wrap{flex-direction:column}.chat{width:auto;border-left:none;border-top:1px solid var(--line);height:520px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🎓 College Funding Command Center</h1>
+  <div class="sub" id="profileLine">Transfer student · Associate's in hand · Fields: Film/Video · Spanish · Dietetics · Target: Liberty University (2027–28)</div>
+</header>
+
+<div class="wrap">
+  <div class="main">
+    <div class="stats" id="stats"></div>
+
+    <div class="controls">
+      <input type="search" id="search" placeholder="Search scholarships…" />
+      <select id="sortSel">
+        <option value="deadline">Sort: Deadline</option>
+        <option value="amount">Sort: Amount (high→low)</option>
+        <option value="priority">Sort: Priority</option>
+        <option value="name">Sort: Name</option>
+      </select>
+      <span id="catPills"></span>
+    </div>
+    <div class="controls" id="statusPills"></div>
+
+    <div class="grid" id="grid"></div>
+  </div>
+
+  <div class="chat">
+    <div class="chead">
+      <b>💬 Funding Assistant</b>
+      <button class="gear" id="gearBtn" title="Settings">⚙️</button>
+    </div>
+    <div class="settings" id="settings">
+      <label>Anthropic API key (stored only in this browser)</label>
+      <input type="password" id="apiKey" placeholder="sk-ant-…" autocomplete="off" />
+      <label>Model</label>
+      <select id="modelSel">
+        <option value="claude-sonnet-4-6">Claude Sonnet 4.6 (balanced, cheaper)</option>
+        <option value="claude-opus-4-8">Claude Opus 4.8 (smartest)</option>
+        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 (fastest, cheapest)</option>
+      </select>
+      <label>Private student profile (stays in your browser — never uploaded to GitHub)</label>
+      <textarea id="privProfile" placeholder="e.g. Name, GPA, family situation, intended major, anything that helps the assistant advise you."></textarea>
+      <button class="applybtn" id="saveSettings" style="margin-top:10px">Save</button>
+      <div class="savedmsg" id="savedMsg"></div>
+      <div class="hint">Your key is used only to call Anthropic directly from your browser. It is saved in this browser's localStorage and is never committed to the repo or sent anywhere else.</div>
+    </div>
+    <div class="clog" id="clog"></div>
+    <div class="cinput">
+      <textarea id="chatInput" placeholder="Ask about deadlines, draft an essay, or say 'mark Beta Club submitted'…"></textarea>
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+</div>
+
+<script src="scholarships.js"></script>
+<script>
+/* ---------- state ---------- */
+const LS_STATUS='cfcc_status', LS_KEY='cfcc_apikey', LS_MODEL='cfcc_model',
+      LS_PROF='cfcc_privprofile', LS_CHAT='cfcc_chat', LS_CUSTOM='cfcc_custom';
+const STATUS_OPTS=[
+  ['not-started','◻︎ Not started'],['in-progress','✏️ In progress'],
+  ['submitted','📨 Submitted'],['awarded','🏆 Awarded'],['skip','✕ Not pursuing']];
+let statusMap=JSON.parse(localStorage.getItem(LS_STATUS)||'{}');
+let customItems=JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]');
+let activeCat='all', activeStatus='all', searchTerm='', sortBy='deadline';
+
+function allItems(){return (window.SCHOLARSHIPS||[]).concat(customItems);}
+function saveStatus(){localStorage.setItem(LS_STATUS,JSON.stringify(statusMap));}
+function saveCustom(){localStorage.setItem(LS_CUSTOM,JSON.stringify(customItems));}
+function getStatus(id){return statusMap[id]||'not-started';}
+
+/* ---------- deadline helpers ---------- */
+function parseDeadline(d){if(!d||!d.iso)return null;const t=Date.parse(d.iso);return isNaN(t)?null:t;}
+function deadlineClass(item){const t=parseDeadline(item.deadline);if(t===null)return 'd-ok';
+  const days=(t-Date.now())/864e5;if(days<0)return 'd-ok';if(days<30)return 'd-urgent';if(days<75)return 'd-soon';return 'd-ok';}
+function deadlineText(item){return item.deadline?item.deadline.label:'Rolling / TBD';}
+
+/* ---------- render ---------- */
+function render(){
+  const items=allItems();
+  // stats
+  const total=items.length;
+  const counts={submitted:0,awarded:0,'in-progress':0};
+  let potential=0, awarded=0;
+  items.forEach(i=>{const s=getStatus(i.id);if(counts[s]!==undefined)counts[s]++;
+    if(typeof i.amountVal==='number'){potential+=i.amountVal;if(s==='awarded')awarded+=i.amountVal;}});
+  const doneish=items.filter(i=>['submitted','awarded'].includes(getStatus(i.id))).length;
+  const pct=total?Math.round(doneish/total*100):0;
+  document.getElementById('stats').innerHTML=`
+    <div class="stat"><div class="n">${total}</div><div class="l">Scholarships tracked</div></div>
+    <div class="stat"><div class="n">${counts.submitted+counts.awarded}</div><div class="l">Submitted / won</div>
+      <div class="bar"><i style="width:${pct}%"></i></div></div>
+    <div class="stat"><div class="n">${counts['in-progress']}</div><div class="l">In progress</div></div>
+    <div class="stat"><div class="n">$${potential.toLocaleString()}</div><div class="l">Potential (max) value</div></div>
+    <div class="stat"><div class="n" style="color:var(--gold)">$${awarded.toLocaleString()}</div><div class="l">Awarded so far</div></div>`;
+  // category pills
+  const cats=['all',...Array.from(new Set(items.map(i=>i.category)))];
+  document.getElementById('catPills').innerHTML=cats.map(c=>
+    `<span class="pill ${c===activeCat?'active':''}" data-cat="${c}">${c==='all'?'All categories':c}</span>`).join('');
+  // status pills
+  const sp=[['all','All'],...STATUS_OPTS];
+  document.getElementById('statusPills').innerHTML='<span style="color:var(--muted);font-size:12px;margin-right:4px">Status:</span>'+
+    sp.map(([v,l])=>`<span class="pill ${v===activeStatus?'active':''}" data-status="${v}">${l}</span>`).join('');
+  // filter + sort
+  let list=items.filter(i=>{
+    if(activeCat!=='all'&&i.category!==activeCat)return false;
+    if(activeStatus!=='all'&&getStatus(i.id)!==activeStatus)return false;
+    if(searchTerm){const h=(i.name+' '+i.sponsor+' '+(i.eligibility||'')+' '+(i.fields||[]).join(' ')).toLowerCase();
+      if(!h.includes(searchTerm))return false;}
+    return true;});
+  const prioRank={urgent:0,high:1,med:2};
+  list.sort((a,b)=>{
+    if(sortBy==='deadline'){const ta=parseDeadline(a.deadline)??8e15,tb=parseDeadline(b.deadline)??8e15;return ta-tb;}
+    if(sortBy==='amount')return (b.amountVal||0)-(a.amountVal||0);
+    if(sortBy==='priority')return (prioRank[a.priority]??3)-(prioRank[b.priority]??3);
+    return a.name.localeCompare(b.name);});
+  // cards
+  document.getElementById('grid').innerHTML=list.map(cardHTML).join('')||
+    '<div style="color:var(--muted)">No scholarships match your filters.</div>';
+  bindCards();
+}
+
+function cardHTML(i){
+  const s=getStatus(i.id);
+  const cls=s==='awarded'||s==='submitted'?'done':(s==='skip'?'skip':'');
+  const prio=i.priority||'med';
+  const flags=(i.flags||[]).map(f=>`<div class="flag">⚠︎ ${esc(f)}</div>`).join('');
+  const fields=(i.fields||[]).map(f=>`<span class="tag field">${esc(f)}</span>`).join('');
+  return `<div class="card ${cls}" data-id="${i.id}">
+    <span class="prio p-${prio}" title="${prio} priority"></span>
+    <h3>${esc(i.name)}</h3>
+    <div class="sponsor">${esc(i.sponsor||'')}</div>
+    <div class="row">
+      <span class="tag amt">${esc(i.amount||'—')}</span>
+      <span class="deadline ${deadlineClass(i)}">⏱ ${esc(deadlineText(i))}</span>
+      ${i.portable===false?'<span class="tag" style="color:var(--danger);border-color:#4d2a28">NC-only</span>':''}
+    </div>
+    <div class="row">${fields}<span class="tag">${esc(i.category)}</span></div>
+    ${i.eligibility?`<div class="elig">${esc(i.eligibility)}</div>`:''}
+    ${i.notes?`<div class="notes">${esc(i.notes)}</div>`:''}
+    ${flags}
+    <div class="cardfoot">
+      <select class="status-sel" data-id="${i.id}">
+        ${STATUS_OPTS.map(([v,l])=>`<option value="${v}" ${v===s?'selected':''}>${l}</option>`).join('')}
+      </select>
+      ${i.applyUrl?`<a class="applybtn" href="${esc(i.applyUrl)}" target="_blank" rel="noopener">Apply ↗</a>`:''}
+    </div></div>`;
+}
+
+function bindCards(){
+  document.querySelectorAll('.status-sel').forEach(sel=>{
+    sel.onchange=e=>{statusMap[e.target.dataset.id]=e.target.value;saveStatus();render();};});
+}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+/* ---------- controls ---------- */
+document.getElementById('search').oninput=e=>{searchTerm=e.target.value.toLowerCase();render();};
+document.getElementById('sortSel').onchange=e=>{sortBy=e.target.value;render();};
+document.addEventListener('click',e=>{
+  if(e.target.dataset.cat){activeCat=e.target.dataset.cat;render();}
+  if(e.target.dataset.status){activeStatus=e.target.dataset.status;render();}});
+
+/* ---------- settings ---------- */
+const $=id=>document.getElementById(id);
+$('gearBtn').onclick=()=>$('settings').classList.toggle('open');
+$('apiKey').value=localStorage.getItem(LS_KEY)||'';
+$('modelSel').value=localStorage.getItem(LS_MODEL)||'claude-sonnet-4-6';
+$('privProfile').value=localStorage.getItem(LS_PROF)||'';
+$('saveSettings').onclick=()=>{
+  localStorage.setItem(LS_KEY,$('apiKey').value.trim());
+  localStorage.setItem(LS_MODEL,$('modelSel').value);
+  localStorage.setItem(LS_PROF,$('privProfile').value);
+  $('savedMsg').textContent='Saved ✓';setTimeout(()=>$('savedMsg').textContent='',1800);};
+
+/* ---------- chat ---------- */
+let chatHistory=JSON.parse(localStorage.getItem(LS_CHAT)||'[]');
+function renderChat(){
+  const log=$('clog');
+  log.innerHTML=chatHistory.map(m=>`<div class="msg ${m.role==='user'?'u':'a'}">${esc(m.display||m.content)}</div>`).join('');
+  if(!chatHistory.length){log.innerHTML='<div class="msg sys">Ask me anything about her funding plan — deadlines, eligibility, essay drafts, or strategy. I can also update the tracker: try "mark the Beta Club scholarship in progress" or "add a scholarship called X, $2,000, due May 1." Set your API key with ⚙️ first.</div>';}
+  log.scrollTop=log.scrollHeight;
+}
+function saveChat(){localStorage.setItem(LS_CHAT,JSON.stringify(chatHistory.slice(-40)));}
+
+function buildSystem(){
+  const items=allItems();
+  const lines=items.map(i=>`- [${i.id}] ${i.name} (${i.sponsor||''}) | ${i.category} | ${i.amount||'?'} | due ${deadlineText(i)} | status: ${getStatus(i.id)}${i.portable===false?' | NC-ONLY (not portable to VA)':''}`).join('\n');
+  const prof=localStorage.getItem(LS_PROF)||'(none provided)';
+  return `You are the embedded funding assistant inside a family's "College Funding Command Center" dashboard. You help a North Carolina student (a high-school senior who will graduate with an Associate's degree and transfer to a 4-year university — top choice Liberty University, VA — in fall 2027) win scholarships and grants for fields in videography/film, Spanish, and dietetics.
+
+Be concise, warm, and concrete. Give specific next actions and deadlines. You may draft essays, outline applications, compare awards, and advise strategy. Today's date context: the 2026–27 application cycle.
+
+PRIVATE STUDENT PROFILE (from the user's browser, confidential): ${prof}
+
+CURRENT TRACKER (live):
+${lines}
+
+You can UPDATE the tracker. When the user asks you to change a status, add a scholarship, or set a note, include a fenced code block tagged "action" containing JSON, in addition to your normal reply. Supported ops:
+\`\`\`action
+{"op":"setStatus","id":"<id>","status":"not-started|in-progress|submitted|awarded|skip"}
+\`\`\`
+\`\`\`action
+{"op":"add","name":"...","sponsor":"...","amount":"$2,000","amountVal":2000,"category":"Custom","deadlineLabel":"May 1, 2027","deadlineISO":"2027-05-01","applyUrl":"https://...","eligibility":"...","priority":"high"}
+\`\`\`
+Use the exact [id] shown in brackets for setStatus. Only emit an action block when the user clearly wants a change. Always also explain in plain language what you changed.`;
+}
+
+function parseActions(text){
+  const re=/```action\s*([\s\S]*?)```/g;let m,applied=[];
+  while((m=re.exec(text))){
+    try{const a=JSON.parse(m[1].trim());
+      if(a.op==='setStatus'&&a.id){statusMap[a.id]=a.status;applied.push(`status of ${a.id} → ${a.status}`);}
+      else if(a.op==='add'&&a.name){
+        const id='custom-'+Date.now()+'-'+Math.floor(performance.now());
+        customItems.push({id,name:a.name,sponsor:a.sponsor||'',category:a.category||'Custom',
+          amount:a.amount||'',amountVal:a.amountVal||0,
+          deadline:a.deadlineISO?{label:a.deadlineLabel||a.deadlineISO,iso:a.deadlineISO}:(a.deadlineLabel?{label:a.deadlineLabel,iso:''}:null),
+          applyUrl:a.applyUrl||'',eligibility:a.eligibility||'',priority:a.priority||'med',fields:a.fields||[]});
+        applied.push(`added "${a.name}"`);}
+    }catch(e){}}
+  if(applied.length){saveStatus();saveCustom();render();}
+  return applied;
+}
+function stripActions(t){return t.replace(/```action[\s\S]*?```/g,'').trim();}
+
+async function send(){
+  const inp=$('chatInput');const text=inp.value.trim();if(!text)return;
+  const key=localStorage.getItem(LS_KEY);
+  if(!key){chatHistory.push({role:'assistant',content:'Please set your Anthropic API key first — click the ⚙️ icon above.'});renderChat();return;}
+  inp.value='';
+  chatHistory.push({role:'user',content:text});renderChat();saveChat();
+  $('sendBtn').disabled=true;
+  const thinking={role:'assistant',content:'…'};chatHistory.push(thinking);renderChat();
+  try{
+    const msgs=chatHistory.filter(m=>m!==thinking).map(m=>({role:m.role,content:m.content}));
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'content-type':'application/json','x-api-key':key,
+        'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:localStorage.getItem(LS_MODEL)||'claude-sonnet-4-6',
+        max_tokens:1500,system:buildSystem(),messages:msgs})});
+    const data=await res.json();
+    chatHistory=chatHistory.filter(m=>m!==thinking);
+    if(data.error){chatHistory.push({role:'assistant',content:'⚠️ '+(data.error.message||'API error')});}
+    else{const raw=(data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+      const applied=parseActions(raw);
+      let disp=stripActions(raw);
+      if(applied.length)disp+=`\n\n✓ Updated tracker: ${applied.join(', ')}.`;
+      chatHistory.push({role:'assistant',content:raw,display:disp});}
+  }catch(e){chatHistory=chatHistory.filter(m=>m!==thinking);
+    chatHistory.push({role:'assistant',content:'⚠️ Network error: '+e.message+'  (If this says CORS, ensure you are using a real Anthropic key.)'});}
+  $('sendBtn').disabled=false;renderChat();saveChat();
+}
+$('sendBtn').onclick=send;
+$('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
+
+/* ---------- init ---------- */
+if(window.PROFILE_LINE)document.getElementById('profileLine').textContent=window.PROFILE_LINE;
+render();renderChat();
+</script>
+</body>
+</html>
