@@ -106,7 +106,8 @@
 <body>
 <header>
   <h1>🎓 College Funding Command Center</h1>
-  <div class="sub" id="profileLine">Transfer student · Associate's in hand · Fields: Film/Video · Spanish · Dietetics · Target: Liberty University (2027–28)</div>
+  <div class="sub" id="profileLine">Transfer student · Associate's in hand · Target: Liberty University</div>
+  <span id="syncBadge" style="font-size:11px;color:var(--accent2);margin-top:5px;display:inline-block"></span>
 </header>
 
 <div class="banner" id="strategyBanner">
@@ -164,6 +165,7 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="scholarships.js"></script>
 <script>
 /* ---------- state ---------- */
@@ -176,9 +178,14 @@ let statusMap=JSON.parse(localStorage.getItem(LS_STATUS)||'{}');
 let customItems=JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]');
 let activeCat='all', activeStatus='all', searchTerm='', sortBy='deadline';
 
+/* ---- shared sync (Supabase): fill these two to sync check-offs across devices ---- */
+const SUPABASE_URL = "";        // ← paste Project URL here
+const SUPABASE_ANON_KEY = "";   // ← paste the anon public key here
+let sb = null; const SHARED_ROW = 'family';
+
 function allItems(){return (window.SCHOLARSHIPS||[]).concat(customItems);}
-function saveStatus(){localStorage.setItem(LS_STATUS,JSON.stringify(statusMap));}
-function saveCustom(){localStorage.setItem(LS_CUSTOM,JSON.stringify(customItems));}
+function saveStatus(){localStorage.setItem(LS_STATUS,JSON.stringify(statusMap));pushShared();}
+function saveCustom(){localStorage.setItem(LS_CUSTOM,JSON.stringify(customItems));pushShared();}
 function getStatus(id){return statusMap[id]||'not-started';}
 
 /* ---------- deadline helpers ---------- */
@@ -366,12 +373,46 @@ async function send(){
 $('sendBtn').onclick=send;
 $('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send();}});
 
+/* ---------- shared sync (Supabase) ---------- */
+function setSyncBadge(on){const b=document.getElementById('syncBadge');if(!b)return;
+  b.textContent=on?'🟢 Live-synced across devices':'';}
+function applyShared(d){
+  if(d && d.statuses) statusMap=d.statuses;
+  if(d && Array.isArray(d.customItems)) customItems=d.customItems;
+  localStorage.setItem(LS_STATUS,JSON.stringify(statusMap));
+  localStorage.setItem(LS_CUSTOM,JSON.stringify(customItems));
+  render();
+}
+let pushTimer=null;
+function pushShared(){
+  if(!sb)return;
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(async()=>{
+    try{await sb.from('shared_state').upsert({id:SHARED_ROW,data:{statuses:statusMap,customItems:customItems},updated_at:new Date().toISOString()});}
+    catch(e){console.warn('sync push failed:',e.message);}
+  },300);
+}
+async function initSync(){
+  if(!SUPABASE_URL||!SUPABASE_ANON_KEY||!window.supabase)return;
+  try{
+    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+    const {data,error}=await sb.from('shared_state').select('data').eq('id',SHARED_ROW).maybeSingle();
+    if(error)throw error;
+    if(data&&data.data){applyShared(data.data);} else {await sb.from('shared_state').upsert({id:SHARED_ROW,data:{statuses:statusMap,customItems:customItems},updated_at:new Date().toISOString()});}
+    sb.channel('shared_'+SHARED_ROW)
+      .on('postgres_changes',{event:'*',schema:'public',table:'shared_state',filter:'id=eq.'+SHARED_ROW},
+        p=>{if(p.new&&p.new.data)applyShared(p.new.data);})
+      .subscribe();
+    setSyncBadge(true);
+  }catch(e){console.warn('shared sync unavailable:',e.message);setSyncBadge(false);}
+}
+
 /* ---------- init ---------- */
 if(window.PROFILE_LINE)document.getElementById('profileLine').textContent=window.PROFILE_LINE;
 (function(){const b=document.getElementById('strategyBanner');
   if(localStorage.getItem('cfcc_banner_dismissed'))b.style.display='none';
   document.getElementById('bannerX').onclick=()=>{b.style.display='none';localStorage.setItem('cfcc_banner_dismissed','1');};})();
-render();renderChat();
+render();renderChat();initSync();
 </script>
 </body>
 </html>
