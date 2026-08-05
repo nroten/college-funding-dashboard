@@ -101,9 +101,27 @@
     .main{overflow:visible}
     .chat{width:auto;border-left:none;border-top:1px solid var(--line);height:520px}
   }
+  /* passphrase gate */
+  .gate{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;align-items:center;justify-content:center}
+  .gatebox{background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:32px 30px;width:320px;max-width:88vw;text-align:center}
+  .gatetitle{font-size:19px;font-weight:700;margin-bottom:6px}
+  .gatesub{color:var(--muted);font-size:13px;margin-bottom:18px}
+  .gate input{width:100%;box-sizing:border-box;background:var(--bg3);border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:11px;font-size:15px;margin-bottom:12px}
+  .gate button{width:100%;background:var(--accent);border:none;color:#06101f;font-weight:700;border-radius:9px;padding:11px;font-size:15px;cursor:pointer}
+  .gateerr{color:var(--danger);font-size:12px;margin-top:10px;min-height:14px}
 </style>
 </head>
 <body>
+<div id="gate" class="gate">
+  <div class="gatebox">
+    <div class="gatetitle">🎓 College Funding Command Center</div>
+    <div class="gatesub">Enter the family passphrase to continue.</div>
+    <input type="password" id="gateInput" placeholder="Passphrase" autocomplete="off" />
+    <button id="gateBtn">Unlock</button>
+    <div class="gateerr" id="gateErr"></div>
+  </div>
+</div>
+
 <header>
   <h1>🎓 College Funding Command Center</h1>
   <div class="sub" id="profileLine">Transfer student · Associate's in hand · Target: Liberty University</div>
@@ -182,6 +200,12 @@ let activeCat='all', activeStatus='all', searchTerm='', sortBy='deadline';
 const SUPABASE_URL = "https://qmidrxnazwlunqgqypzt.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtaWRyeG5hendsdW5xZ3F5cHp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5Mzc4ODgsImV4cCI6MjEwMTUxMzg4OH0.IiPZ_9Tj3u_3HTZpvtCF-EgpE3s7fPXALu0ZTWzY1eI";
 let sb = null; const SHARED_ROW = 'family';
+
+/* ---- passphrase gate (hash of the family passphrase; plaintext not stored) ---- */
+const GATE_HASH = "8417868f5ff9498e3f1961ca663b6cafd258b6c8bd7da65efec6ae3958502a3a";
+const LS_GATE = 'cfcc_gate_v1';
+async function sha256hex(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 
 function allItems(){return (window.SCHOLARSHIPS||[]).concat(customItems);}
 function saveStatus(){localStorage.setItem(LS_STATUS,JSON.stringify(statusMap));pushShared();}
@@ -412,7 +436,19 @@ if(window.PROFILE_LINE)document.getElementById('profileLine').textContent=window
 (function(){const b=document.getElementById('strategyBanner');
   if(localStorage.getItem('cfcc_banner_dismissed'))b.style.display='none';
   document.getElementById('bannerX').onclick=()=>{b.style.display='none';localStorage.setItem('cfcc_banner_dismissed','1');};})();
-render();renderChat();initSync();
+render();renderChat();
+
+/* passphrase gate: initSync only runs once unlocked */
+function unlockApp(){document.getElementById('gate').style.display='none';initSync();}
+async function tryUnlock(){
+  const h=await sha256hex(document.getElementById('gateInput').value);
+  if(h===GATE_HASH){localStorage.setItem(LS_GATE,GATE_HASH);unlockApp();}
+  else{document.getElementById('gateErr').textContent='Incorrect passphrase.';}
+}
+if(localStorage.getItem(LS_GATE)===GATE_HASH){unlockApp();}
+else{document.getElementById('gateInput').focus();}
+document.getElementById('gateBtn').onclick=tryUnlock;
+document.getElementById('gateInput').addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock();});
 </script>
 </body>
 </html>
