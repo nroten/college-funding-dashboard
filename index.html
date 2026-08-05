@@ -179,8 +179,8 @@ let customItems=JSON.parse(localStorage.getItem(LS_CUSTOM)||'[]');
 let activeCat='all', activeStatus='all', searchTerm='', sortBy='deadline';
 
 /* ---- shared sync (Supabase): fill these two to sync check-offs across devices ---- */
-const SUPABASE_URL = "";        // ← paste Project URL here
-const SUPABASE_ANON_KEY = "";   // ← paste the anon public key here
+const SUPABASE_URL = "https://qmidrxnazwlunqgqypzt.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFtaWRyeG5hendsdW5xZ3F5cHp0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5Mzc4ODgsImV4cCI6MjEwMTUxMzg4OH0.IiPZ_9Tj3u_3HTZpvtCF-EgpE3s7fPXALu0ZTWzY1eI";
 let sb = null; const SHARED_ROW = 'family';
 
 function allItems(){return (window.SCHOLARSHIPS||[]).concat(customItems);}
